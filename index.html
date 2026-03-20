@@ -195,11 +195,20 @@ async function fetchComments(domain, email, token, id) {
 }
 
 async function analyzeWithClaude(summaries) {
-  const prompt=`Você é especialista em cobranças e renegociação de dívidas. Analise estes tickets do WhatsApp e retorne APENAS um JSON válido (sem markdown, sem texto extra):\n\nTICKETS:\n${summaries}\n\n{"total_tickets":<n>,"taxa_resolucao":<0-100>,"total_objections":<n>,"sentiment_score":<1-10>,"objections":[{"label":"texto","pct":<0-100>,"type":"red|amber|green"}],"sentiment_phases":[{"phase":"Abertura","positive":<n>,"neutral":<n>,"negative":<n>},{"phase":"Negociação","positive":<n>,"neutral":<n>,"negative":<n>},{"phase":"Fechamento","positive":<n>,"neutral":<n>,"negative":<n>}],"patterns_work":["tag1","tag2","tag3","tag4","tag5"],"patterns_fail":["tag1","tag2","tag3","tag4"],"client_profile":"3-4 frases sobre perfil do cliente que renegocia","tips":["dica1","dica2","dica3","dica4","dica5"],"script":"script com [OBJEÇÃO:...] e [RESPOSTA:...] para as 3 objeções mais comuns"}`;
+  const prompt=`Você é especialista em cobranças e renegociação de dívidas. Analise estes tickets do WhatsApp e retorne APENAS um JSON válido (sem markdown, sem texto extra):\n\nTICKETS:\n${summaries}\n\n{"total_tickets":0,"taxa_resolucao":0,"total_objections":0,"sentiment_score":0,"objections":[{"label":"texto","pct":0,"type":"red"}],"sentiment_phases":[{"phase":"Abertura","positive":0,"neutral":0,"negative":0},{"phase":"Negociação","positive":0,"neutral":0,"negative":0},{"phase":"Fechamento","positive":0,"neutral":0,"negative":0}],"patterns_work":["tag1"],"patterns_fail":["tag1"],"client_profile":"perfil","tips":["dica1"],"script":"script"}`;
   const res=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
   const data=await res.json();
   if (!res.ok) throw new Error(data.error||'Erro Claude');
-  const text=data.content.map(i=>i.text||'').join('');
+  
+  let text = '';
+  if (data.content) {
+    text = data.content.map(i=>i.text||'').join('');
+  } else if (data.error) {
+    throw new Error(data.error + ' ' + (data.detail||''));
+  } else {
+    throw new Error('Resposta inesperada: ' + JSON.stringify(data));
+  }
+  
   return JSON.parse(text.replace(/```json|```/g,'').trim());
 }
 
