@@ -30,10 +30,10 @@ export default async function handler(req, res) {
       })
     });
 
-    if (!claudeRes.ok) {
-      const text = await claudeRes.text();
-      return res.status(claudeRes.status).json({ error: 'Claude retornou ' + claudeRes.status, detail: text });
-    }
+ if (!claudeRes.ok) {
+  const text = await claudeRes.text();
+  return res.status(200).json({ error: 'Claude retornou ' + claudeRes.status, detail: text });
+}
 
     const data = await claudeRes.json();
     return res.status(200).json(data);
