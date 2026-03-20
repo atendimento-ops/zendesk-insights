@@ -1,277 +1,43 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zendesk Insights — Renegociação de Dívidas</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; color: #1a1a18; min-height: 100vh; }
-  .topbar { background: #fff; border-bottom: 0.5px solid #e0ddd4; padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-  .topbar-brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: #1D9E75; }
-  .status-badge { font-size: 12px; padding: 3px 10px; border-radius: 20px; border: 0.5px solid #e0ddd4; color: #888780; background: #f5f4f0; }
-  .status-badge.connected { border-color: #9FE1CB; color: #0F6E56; background: #E1F5EE; }
-  .main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
-  .setup-card { background: #fff; border: 0.5px solid #e0ddd4; border-radius: 12px; padding: 2rem; margin-bottom: 1.5rem; }
-  .setup-card h2 { font-size: 16px; font-weight: 500; margin-bottom: 1.25rem; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .form-group { display: flex; flex-direction: column; gap: 6px; }
-  .form-group.full { grid-column: 1 / -1; }
-  label { font-size: 12px; color: #888780; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
-  input, select { height: 38px; border: 0.5px solid #d3d1c7; border-radius: 8px; padding: 0 12px; font-size: 14px; background: #fff; color: #1a1a18; outline: none; transition: border-color 0.15s; width: 100%; }
-  input:focus, select:focus { border-color: #888780; }
-  input::placeholder { color: #b4b2a9; }
-  .btn { height: 38px; padding: 0 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: 0.5px solid #d3d1c7; background: #fff; color: #1a1a18; display: inline-flex; align-items: center; gap: 8px; }
-  .btn:hover { background: #f5f4f0; }
-  .btn:active { transform: scale(0.98); }
-  .btn-primary { background: #1a1a18; color: #fff; border-color: #1a1a18; }
-  .btn-primary:hover { background: #333330; }
-  .btn-primary:disabled { background: #b4b2a9; border-color: #b4b2a9; cursor: not-allowed; transform: none; }
-  .btn-row { display: flex; gap: 10px; margin-top: 1.25rem; flex-wrap: wrap; }
-  .log-box { background: #f5f4f0; border: 0.5px solid #e0ddd4; border-radius: 8px; padding: 12px 16px; font-size: 12px; font-family: 'SF Mono', 'Fira Code', monospace; color: #5F5E5A; min-height: 48px; line-height: 1.8; margin-top: 1rem; max-height: 140px; overflow-y: auto; }
-  .log-box .ok { color: #0F6E56; }
-  .log-box .err { color: #A32D2D; }
-  .log-box .info { color: #185FA5; }
-  .progress-bar-wrap { background: #f5f4f0; border-radius: 8px; height: 4px; margin-top: 8px; overflow: hidden; }
-  .progress-bar { height: 4px; background: #1a1a18; border-radius: 8px; transition: width 0.4s; }
-  .sample-note { font-size: 12px; color: #5F5E5A; background: #FAEEDA; border: 0.5px solid #FAC775; border-radius: 8px; padding: 10px 14px; margin-top: 12px; line-height: 1.7; }
-  .sample-note code { background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
-  .section-title { font-size: 13px; font-weight: 500; color: #888780; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; }
-  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
-  .metric { background: #f5f4f0; border-radius: 8px; padding: 1rem; }
-  .metric-label { font-size: 12px; color: #888780; margin-bottom: 6px; }
-  .metric-value { font-size: 24px; font-weight: 500; color: #1a1a18; }
-  .insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
-  .insight-card { background: #fff; border: 0.5px solid #e0ddd4; border-radius: 12px; padding: 1.25rem; }
-  .insight-card h3 { font-size: 14px; font-weight: 500; margin-bottom: 1rem; }
-  .insight-card.full { grid-column: 1 / -1; }
-  .obj-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid #f5f4f0; }
-  .obj-item:last-child { border-bottom: none; }
-  .obj-bar-wrap { flex: 1; background: #f5f4f0; border-radius: 4px; height: 6px; overflow: hidden; }
-  .obj-bar { height: 6px; border-radius: 4px; background: #1D9E75; transition: width 0.8s ease; }
-  .obj-bar.red { background: #E24B4A; }
-  .obj-bar.amber { background: #EF9F27; }
-  .obj-label { font-size: 13px; color: #1a1a18; flex: 1; }
-  .obj-pct { font-size: 12px; color: #888780; min-width: 36px; text-align: right; }
-  .tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
-  .tag { font-size: 12px; padding: 4px 12px; border-radius: 20px; border: 0.5px solid #e0ddd4; background: #f5f4f0; color: #444441; }
-  .tag.green { background: #E1F5EE; border-color: #9FE1CB; color: #0F6E56; }
-  .tag.red { background: #FCEBEB; border-color: #F7C1C1; color: #A32D2D; }
-  .tips-list { list-style: none; }
-  .tips-list li { display: flex; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid #f5f4f0; font-size: 14px; line-height: 1.5; color: #2C2C2A; }
-  .tips-list li:last-child { border-bottom: none; }
-  .tips-list .num { width: 22px; height: 22px; border-radius: 50%; background: #1a1a18; color: #fff; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-  #results { display: none; }
-  @media (max-width: 640px) {
-    .form-grid, .metrics, .insights-grid { grid-template-columns: 1fr; }
-    .insight-card.full { grid-column: 1; }
-    .main { padding: 1rem; }
+export default async function handler(req, res) {
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(200).end();
   }
-</style>
-</head>
-<body>
-<div class="topbar">
-  <div class="topbar-brand"><div class="dot"></div> Zendesk Insights — Renegociação</div>
-  <span class="status-badge" id="conn-badge">Não conectado</span>
-</div>
-<div class="main">
-  <div class="setup-card">
-    <h2>Configuração da conexão</h2>
-    <div class="form-grid">
-      <div class="form-group">
-        <label>Subdomínio Zendesk</label>
-        <input type="text" id="zd-domain" placeholder="suaempresa (sem .zendesk.com)" />
-      </div>
-      <div class="form-group">
-        <label>E-mail do agente</label>
-        <input type="email" id="zd-email" placeholder="agente@empresa.com" />
-      </div>
-      <div class="form-group full">
-        <label>API Token Zendesk</label>
-        <input type="password" id="zd-token" placeholder="Cole seu token da API do Zendesk" />
-      </div>
-      <div class="form-group">
-        <label>Canal de origem</label>
-        <select id="zd-channel">
-          <option value="whatsapp">WhatsApp</option>
-          <option value="all">Todos os canais</option>
-          <option value="api">API / Integração</option>
-          <option value="web">Web / Portal</option>
-          <option value="email">E-mail</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Filtrar por tag adicional (opcional)</label>
-        <input type="text" id="zd-tag" placeholder="ex: renegociacao, cobranca" />
-      </div>
-      <div class="form-group">
-        <label>Tickets a buscar</label>
-        <select id="zd-limit">
-          <option value="50">Últimos 50</option>
-          <option value="100" selected>Últimos 100</option>
-          <option value="200">Últimos 200</option>
-          <option value="500">Últimos 500</option>
-          <option value="1000">Últimos 1.000</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Tickets enviados para análise IA</label>
-        <select id="zd-analyze-limit">
-          <option value="30">30 tickets (rápido)</option>
-          <option value="60" selected>60 tickets (recomendado)</option>
-          <option value="100">100 tickets (detalhado)</option>
-          <option value="150">150 tickets (aprofundado)</option>
-        </select>
-      </div>
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" id="btn-analyze" onclick="startAnalysis()">Analisar tickets ↗</button>
-      <button class="btn" onclick="loadSampleData()">Usar dados de exemplo</button>
-    </div>
-    <div class="sample-note">
-      <strong>Token Zendesk:</strong> Admin Center → Apps e integrações → APIs → API Zendesk → Tokens de API.<br>
-      <strong>Filtro WhatsApp:</strong> usa <code>via:whatsapp</code> na query. Se sua integração usa canal diferente, selecione "Todos os canais" e filtre por tag.<br>
-      <strong>API Key Claude:</strong> configure como variável de ambiente <code>ANTHROPIC_API_KEY</code> no painel do Vercel — não fica exposta no front.
-    </div>
-    <div class="log-box" id="log-box">Aguardando configuração...</div>
-    <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
-  </div>
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  <div id="results">
-    <div class="section-title">Resumo geral</div>
-    <div class="metrics">
-      <div class="metric"><div class="metric-label">Tickets analisados</div><div class="metric-value" id="m-total">—</div></div>
-      <div class="metric"><div class="metric-label">Taxa de resolução</div><div class="metric-value" id="m-resolved">—</div></div>
-      <div class="metric"><div class="metric-label">Objeções identificadas</div><div class="metric-value" id="m-objections">—</div></div>
-      <div class="metric"><div class="metric-label">Score de sentimento</div><div class="metric-value" id="m-sentiment">—</div></div>
-    </div>
-    <div class="insights-grid">
-      <div class="insight-card"><h3>Principais objeções</h3><div id="obj-list"></div></div>
-      <div class="insight-card"><h3>Sentimento por fase</h3><div id="sentiment-chart"></div></div>
-      <div class="insight-card">
-        <h3>O que funciona</h3><div id="patterns-works" class="tag-list"></div>
-        <br><h3>O que não funciona</h3><div id="patterns-fails" class="tag-list"></div>
-      </div>
-      <div class="insight-card"><h3>Perfil do cliente que renegocia</h3><div id="client-profile" style="font-size:14px;line-height:1.7;color:#2C2C2A;"></div></div>
-      <div class="insight-card full"><h3>Recomendações de ação</h3><ul class="tips-list" id="tips-list"></ul></div>
-      <div class="insight-card full"><h3>Script para contorno de objeções</h3><div id="script-box" style="font-size:14px;line-height:1.8;color:#2C2C2A;white-space:pre-wrap;"></div></div>
-    </div>
-  </div>
-</div>
+  const { prompt, ticketSummaries } = req.body;
+  const content = prompt || ticketSummaries;
+  if (!content) return res.status(400).json({ error: 'prompt ou ticketSummaries é obrigatório' });
 
-<script>
-const logEl = document.getElementById('log-box');
-const progressEl = document.getElementById('progress-bar');
-function log(msg, type='') { const l=document.createElement('div'); if(type)l.className=type; l.textContent='› '+msg; logEl.appendChild(l); logEl.scrollTop=logEl.scrollHeight; }
-function setProgress(p) { progressEl.style.width=p+'%'; }
-function clearLog() { logEl.innerHTML=''; }
+  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY não configurada' });
 
-async function zdProxy(domain, email, token, path) {
-  const res = await fetch('/api/zendesk', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({domain,email,token,path}) });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error+(data.detail?': '+data.detail:''));
-  return data;
-}
-
-async function fetchTickets(domain, email, token, limit, tag, channel) {
-  const all=[]; let page=1;
-  while (all.length < limit) {
-    let q='type:ticket';
-    if (channel!=='all') q+='+via:'+channel;
-    if (tag) q+='+tags:'+tag;
-    const pp=Math.min(100,limit-all.length);
-    const data = await zdProxy(domain,email,token,'/api/v2/search.json?query='+encodeURIComponent(q)+'&per_page='+pp+'&page='+page+'&sort_by=created_at&sort_order=desc');
-    const r=data.results||[];
-    all.push(...r);
-    if (!data.next_page||r.length===0) break;
-    page++;
-  }
-  return all.slice(0,limit);
-}
-
-async function fetchComments(domain, email, token, id) {
-  try { const d=await zdProxy(domain,email,token,'/api/v2/tickets/'+id+'/comments.json'); return d.comments||[]; } catch { return []; }
-}
-
-async function analyzeWithClaude(summaries) {
-  const prompt=`Você é especialista em cobranças e renegociação de dívidas. Analise estes tickets do WhatsApp e retorne APENAS um JSON válido (sem markdown, sem texto extra):\n\nTICKETS:\n${summaries}\n\n{"total_tickets":<n>,"taxa_resolucao":<0-100>,"total_objections":<n>,"sentiment_score":<1-10>,"objections":[{"label":"texto","pct":<0-100>,"type":"red|amber|green"}],"sentiment_phases":[{"phase":"Abertura","positive":<n>,"neutral":<n>,"negative":<n>},{"phase":"Negociação","positive":<n>,"neutral":<n>,"negative":<n>},{"phase":"Fechamento","positive":<n>,"neutral":<n>,"negative":<n>}],"patterns_work":["tag1","tag2","tag3","tag4","tag5"],"patterns_fail":["tag1","tag2","tag3","tag4"],"client_profile":"3-4 frases sobre perfil do cliente que renegocia","tips":["dica1","dica2","dica3","dica4","dica5"],"script":"script com [OBJEÇÃO:...] e [RESPOSTA:...] para as 3 objeções mais comuns"}`;
-  const res=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
-  const data=await res.json();
-  if (!res.ok) throw new Error(data.error||'Erro Claude');
-  const text=data.content.map(i=>i.text||'').join('');
-  return JSON.parse(text.replace(/```json|```/g,'').trim());
-}
-
-async function startAnalysis() {
-  const domain=document.getElementById('zd-domain').value.trim();
-  const email=document.getElementById('zd-email').value.trim();
-  const token=document.getElementById('zd-token').value.trim();
-  const limit=parseInt(document.getElementById('zd-limit').value);
-  const aLimit=parseInt(document.getElementById('zd-analyze-limit').value);
-  const tag=document.getElementById('zd-tag').value.trim();
-  const channel=document.getElementById('zd-channel').value;
-  if (!domain||!email||!token){alert('Preencha subdomínio, e-mail e token.');return;}
-  clearLog(); document.getElementById('results').style.display='none';
-  document.getElementById('btn-analyze').disabled=true; setProgress(5);
   try {
-    log('Buscando tickets — canal: '+(channel==='all'?'todos':channel)+'...','info');
-    const tickets=await fetchTickets(domain,email,token,limit,tag,channel);
-    log(tickets.length+' tickets encontrados','ok');
-    document.getElementById('conn-badge').textContent='Conectado';
-    document.getElementById('conn-badge').className='status-badge connected';
-    setProgress(20);
-    const sample=tickets.slice(0,aLimit);
-    log('Lendo comentários de '+sample.length+' tickets...','info');
-    let summaries='';
-    for (let i=0;i<sample.length;i++) {
-      const t=sample[i];
-      const comments=await fetchComments(domain,email,token,t.id);
-      const txt=comments.slice(0,4).map(c=>c.plain_body||c.body||'').join(' | ');
-      summaries+=`[#${t.id}|Status:${t.status}|Canal:${t.via?.channel||channel}|Assunto:${t.subject||''}]\n${txt.substring(0,400)}\n\n`;
-      if (i%10===0) log('Processando '+(i+1)+'/'+sample.length+'...');
-      setProgress(20+Math.round((i/sample.length)*45));
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content }]
+      })
+    });
+
+    if (!claudeRes.ok) {
+      const text = await claudeRes.text();
+      return res.status(claudeRes.status).json({ error: `Claude retornou ${claudeRes.status}`, detail: text });
     }
-    log('Enviando para Claude...','info'); setProgress(68);
-    const insights=await analyzeWithClaude(summaries);
-    setProgress(95); log('Análise concluída!','ok');
-    renderResults(insights,tickets.length); setProgress(100);
-  } catch(err) {
-    log('Erro: '+err.message,'err');
-  } finally { document.getElementById('btn-analyze').disabled=false; }
-}
 
-function loadSampleData() {
-  clearLog(); setProgress(30); log('Carregando dados de exemplo...','info');
-  setTimeout(()=>{
-    renderResults({total_tickets:100,taxa_resolucao:62,total_objections:38,sentiment_score:6.2,
-      objections:[{label:"Não tenho dinheiro agora",pct:72,type:"red"},{label:"O valor está alto demais",pct:58,type:"red"},{label:"Preciso consultar o cônjuge",pct:41,type:"amber"},{label:"Já paguei isso antes",pct:35,type:"amber"},{label:"Quero desconto maior",pct:28,type:"amber"}],
-      sentiment_phases:[{phase:"Abertura",positive:40,neutral:35,negative:25},{phase:"Negociação",positive:25,neutral:30,negative:45},{phase:"Fechamento",positive:55,neutral:28,negative:17}],
-      patterns_work:["Parcelamento em 3x","Desconto no boleto","Oferta com prazo","Tom empático","Urgência com data"],
-      patterns_fail:["Cobrar imediatamente","Tom formal","Proposta única","Resposta genérica"],
-      client_profile:"O cliente que aceita renegociar geralmente responde pela manhã (8h–11h), tem dívidas entre R$ 500 e R$ 3.000 e retorna após 2–3 contatos. Demonstra abertura quando o agente reconhece sua situação com empatia. Prefere parcelamento a desconto único e fecha mais quando há prazo de validade definido.",
-      tips:["Concentre disparos entre 8h e 11h — 40% mais respostas.","Ofereça 3 opções de parcelamento. Múltiplas ofertas dobram a resolução.","Adicione urgência real: 'Essa condição expira hoje às 18h' aumenta o fechamento em 35%.","Valide a objeção antes de responder. 'Entendo, [nome]' reduz abandono.","Crie follow-up automático 24h depois para quem responde mas não fecha."],
-      script:"[OBJEÇÃO: Não tenho dinheiro agora]\n[RESPOSTA]: \"Entendo, [nome], e fico feliz que você veio falar comigo. Justamente por isso preparamos uma condição especial: você pode parcelar em até 6x sem juros, começando só em [data]. Seria possível começar com a 1ª parcela de R$ XX hoje?\"\n\n[OBJEÇÃO: O valor está muito alto]\n[RESPOSTA]: \"Você tem razão em questionar — vamos resolver isso. Consigo 30% de desconto se fecharmos hoje, reduzindo de R$ XX para R$ YY. Isso cabe no seu orçamento?\"\n\n[OBJEÇÃO: Preciso falar com meu cônjuge]\n[RESPOSTA]: \"Claro, faz todo sentido! Essa oferta vale até [data]. Posso mandar um resumo por escrito para facilitar a conversa.\""
-    },100);
-    log('Dados de exemplo carregados!','ok'); setProgress(100);
-  },600);
+    const data = await claudeRes.json();
+    return res.status(200).json(data);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 }
-
-function renderResults(data, total) {
-  document.getElementById('results').style.display='block';
-  document.getElementById('m-total').textContent=total||data.total_tickets;
-  document.getElementById('m-resolved').textContent=data.taxa_resolucao+'%';
-  document.getElementById('m-objections').textContent=data.total_objections;
-  document.getElementById('m-sentiment').textContent=data.sentiment_score+'/10';
-  document.getElementById('obj-list').innerHTML=(data.objections||[]).map(o=>`<div class="obj-item"><span class="obj-label">${o.label}</span><div class="obj-bar-wrap"><div class="obj-bar ${o.type}" style="width:${o.pct}%"></div></div><span class="obj-pct">${o.pct}%</span></div>`).join('');
-  document.getElementById('sentiment-chart').innerHTML=(data.sentiment_phases||[]).map(p=>`<div style="margin-bottom:12px;"><div style="font-size:12px;color:#888780;margin-bottom:6px;">${p.phase}</div><div style="display:flex;gap:3px;height:10px;border-radius:6px;overflow:hidden;"><div style="width:${p.positive}%;background:#1D9E75;"></div><div style="width:${p.neutral}%;background:#d3d1c7;"></div><div style="width:${p.negative}%;background:#E24B4A;"></div></div><div style="display:flex;gap:12px;margin-top:4px;font-size:11px;color:#888780;"><span>Positivo ${p.positive}%</span><span>Neutro ${p.neutral}%</span><span>Negativo ${p.negative}%</span></div></div>`).join('');
-  document.getElementById('patterns-works').innerHTML=(data.patterns_work||[]).map(t=>`<span class="tag green">${t}</span>`).join('');
-  document.getElementById('patterns-fails').innerHTML=(data.patterns_fail||[]).map(t=>`<span class="tag red">${t}</span>`).join('');
-  document.getElementById('client-profile').textContent=data.client_profile||'';
-  document.getElementById('tips-list').innerHTML=(data.tips||[]).map((t,i)=>`<li><span class="num">${i+1}</span><span>${t}</span></li>`).join('');
-  document.getElementById('script-box').textContent=data.script||'';
-  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
-}
-</script>
-</body>
-</html>
