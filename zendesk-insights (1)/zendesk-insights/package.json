@@ -1,0 +1,8 @@
+{
+  "name": "zendesk-insights",
+  "version": "1.0.0",
+  "description": "Análise de tickets Zendesk com IA para renegociação de dívidas",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
